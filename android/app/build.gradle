@@ -1,0 +1,83 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+def signingPropertiesFile = rootProject.file("release-signing.properties")
+def signingProperties = [:]
+
+if (signingPropertiesFile.exists()) {
+    signingPropertiesFile.withReader { reader ->
+        reader.eachLine { line ->
+            def keyValue = line.split('=')
+            if (keyValue.length == 2) {
+                signingProperties[keyValue[0].trim()] = keyValue[1].trim()
+            }
+        }
+    }
+} else {
+    println "Warning: release-signing.properties file not found!"
+}
+
+android {
+    namespace = "com.example.beautyhaven"
+    compileSdk = flutter.compileSdkVersion // Используем версию SDK из Flutter.
+
+    ndkVersion = flutter.ndkVersion
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = "1.8" // Явно указываем JVM таргет.
+    }
+
+    defaultConfig {
+        applicationId = "com.example.beautyhaven"
+        minSdkVersion 23
+        targetSdkVersion flutter.targetSdkVersion
+        versionCode flutter.versionCode
+        versionName flutter.versionName
+    }
+
+    signingConfigs {
+        release {
+            if (signingProperties['storeFile']) {
+                storeFile file(signingProperties['storeFile'])
+                storePassword signingProperties['storePassword']
+                keyAlias signingProperties['keyAlias']
+                keyPassword signingProperties['keyPassword']
+            } else {
+                println "Warning: Signing properties are missing or incomplete!"
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+            minifyEnabled true // Оптимизация
+            shrinkResources true // Удаление неиспользуемых ресурсов
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+flutter {
+    source = "../.."
+}
+
+dependencies {
+    // Зависимости Google Play Services.
+    implementation platform('com.google.firebase:firebase-bom:32.0.0')
+    implementation 'com.google.firebase:firebase-auth'
+    implementation 'com.google.firebase:firebase-core'
+    implementation 'com.google.firebase:firebase-core:21.1.1' // Укажите последнюю доступную версию.
+}
+
+// Подключение плагина Google Services.
+apply plugin: 'com.google.gms.google-services'
